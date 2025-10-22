@@ -148,14 +148,22 @@ class RegistrationRecord extends Record {
             return;
         }
 
-        $expectedTotalTaxAmount = 0;
-        $totalBaseAmount = 0;
+        $expectedTotalTaxAmount = 0.0;
+        $totalBaseAmount = 0.0;
         foreach ($this->breakdown as $details) {
             if (!isset($details->taxAmount) || !isset($details->baseAmount)) {
                 return;
             }
-            $expectedTotalTaxAmount += $details->taxAmount;
-            $totalBaseAmount += $details->baseAmount;
+            // Sum IVA tax amount
+            $expectedTotalTaxAmount += (float) $details->taxAmount;
+
+            // Also add surcharge amount if present (Recargo de Equivalencia)
+            // According to AEAT spec: CuotaTotal = Cuota Repercutida + Cuota de Recargo de Equivalencia
+            if ($details->surchargeAmount !== null) {
+                $expectedTotalTaxAmount += (float) $details->surchargeAmount;
+            }
+
+            $totalBaseAmount += (float) $details->baseAmount;
         }
 
         $expectedTotalTaxAmount = number_format($expectedTotalTaxAmount, 2, '.', '');
@@ -353,6 +361,14 @@ class RegistrationRecord extends Record {
             $detalleDesgloseElement->add('sum1:BaseImponibleOimporteNoSujeto', $breakdownDetails->baseAmount);
             if ($breakdownDetails->taxAmount !== null) {
                 $detalleDesgloseElement->add('sum1:CuotaRepercutida', $breakdownDetails->taxAmount);
+            }
+
+            // Add RDE (Recargo de Equivalencia) if present
+            if ($breakdownDetails->surchargeRate !== null) {
+                $detalleDesgloseElement->add('sum1:TipoRecargoEquivalencia', $breakdownDetails->surchargeRate);
+            }
+            if ($breakdownDetails->surchargeAmount !== null) {
+                $detalleDesgloseElement->add('sum1:CuotaRecargoEquivalencia', $breakdownDetails->surchargeAmount);
             }
         }
 

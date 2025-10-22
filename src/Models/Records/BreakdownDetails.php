@@ -61,6 +61,42 @@ class BreakdownDetails extends Model {
     #[Assert\Regex(pattern: '/^-?\d{1,12}\.\d{2}$/')]
     public ?string $taxAmount = null;
 
+    /**
+     * Porcentaje de recargo de equivalencia
+     *
+     * @field TipoRecargoEquivalencia
+     */
+    #[Assert\Regex(pattern: '/^\d{1,3}\.\d{2}$/')]
+    public ?string $surchargeRate = null;
+
+    /**
+     * Cuota de recargo de equivalencia
+     *
+     * @field CuotaRecargoEquivalencia
+     */
+    #[Assert\Regex(pattern: '/^-?\d{1,12}\.\d{2}$/')]
+    public ?string $surchargeAmount = null;
+
+    #[Assert\Callback]
+    final public function validateRegimeType(ExecutionContextInterface $context): void {
+        if (!isset($this->regimeType)) {
+            return;
+        }
+
+        if ($this->regimeType === RegimeType::C18) {
+            if ($this->surchargeRate === null) {
+                $context->buildViolation('Surcharge rate must be defined for C18 regime type')
+                    ->atPath('surchargeRate')
+                    ->addViolation();
+            }
+            if ($this->surchargeAmount === null) {
+                $context->buildViolation('Surcharge amount must be defined for C18 regime type')
+                    ->atPath('surchargeAmount')
+                    ->addViolation();
+            }
+        }
+    }
+
     #[Assert\Callback]
     final public function validateOperationType(ExecutionContextInterface $context): void {
         if (!isset($this->operationType)) {
@@ -87,6 +123,16 @@ class BreakdownDetails extends Model {
             if ($this->taxAmount !== null) {
                 $context->buildViolation('Tax amount cannot be defined for non-subject or exempt operation types')
                     ->atPath('taxAmount')
+                    ->addViolation();
+            }
+            if ($this->surchargeRate !== null) {
+                $context->buildViolation('Surcharge rate cannot be defined for non-subject or exempt operation types')
+                    ->atPath('surchargeRate')
+                    ->addViolation();
+            }
+            if ($this->surchargeAmount !== null) {
+                $context->buildViolation('Surcharge amount cannot be defined for non-subject or exempt operation types')
+                    ->atPath('surchargeAmount')
                     ->addViolation();
             }
         }
