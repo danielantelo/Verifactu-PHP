@@ -62,17 +62,17 @@ class BreakdownDetails extends Model {
     public ?string $taxAmount = null;
 
     /**
-     * Porcentaje de recargo de equivalencia
+     * Porcentaje aplicado sobre la base imponible para calcular la cuota
      *
-     * @field TipoRecargoEquivalencia
+     * @field TipoImpositivo
      */
     #[Assert\Regex(pattern: '/^\d{1,3}\.\d{2}$/')]
     public ?string $surchargeRate = null;
 
     /**
-     * Cuota de recargo de equivalencia
+     * Cuota resultante de aplicar a la base imponible el tipo impositivo
      *
-     * @field CuotaRecargoEquivalencia
+     * @field CuotaRepercutida
      */
     #[Assert\Regex(pattern: '/^-?\d{1,12}\.\d{2}$/')]
     public ?string $surchargeAmount = null;

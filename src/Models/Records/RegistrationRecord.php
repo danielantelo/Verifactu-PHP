@@ -148,22 +148,18 @@ class RegistrationRecord extends Record {
             return;
         }
 
-        $expectedTotalTaxAmount = 0.0;
-        $totalBaseAmount = 0.0;
+        $expectedTotalTaxAmount = 0;
+        $expectedTotalBaseAmount = 0;
+        
         foreach ($this->breakdown as $details) {
             if (!isset($details->taxAmount) || !isset($details->baseAmount)) {
                 return;
             }
-            // Sum IVA tax amount
-            $expectedTotalTaxAmount += (float) $details->taxAmount;
-
-            // Also add surcharge amount if present (Recargo de Equivalencia)
-            // According to AEAT spec: CuotaTotal = Cuota Repercutida + Cuota de Recargo de Equivalencia
-            if ($details->surchargeAmount !== null) {
-                $expectedTotalTaxAmount += (float) $details->surchargeAmount;
+            $expectedTotalTaxAmount += $details->taxAmount;
+            $expectedTotalBaseAmount += $details->baseAmount;
+            if (isset($details->surchargeAmount)) {
+                $expectedTotalTaxAmount += $details->surchargeAmount;
             }
-
-            $totalBaseAmount += (float) $details->baseAmount;
         }
 
         $expectedTotalTaxAmount = number_format($expectedTotalTaxAmount, 2, '.', '');
@@ -174,17 +170,16 @@ class RegistrationRecord extends Record {
         }
 
         $validTotalAmount = false;
-        $bestTotalAmount = $totalBaseAmount + $expectedTotalTaxAmount;
+        $expectedTotalAmount = number_format($expectedTotalBaseAmount + $expectedTotalTaxAmount, 2, '.', '');
         foreach ([0, -0.01, 0.01, -0.02, 0.02] as $tolerance) {
-            $expectedTotalAmount = number_format($bestTotalAmount + $tolerance, 2, '.', '');
-            if ($this->totalAmount === $expectedTotalAmount) {
+            $expectedTotalAmountWithTolerance = number_format($expectedTotalAmount + $tolerance, 2, '.', '');
+            if ($this->totalAmount === $expectedTotalAmountWithTolerance) {
                 $validTotalAmount = true;
                 break;
             }
         }
         if (!$validTotalAmount) {
-            $bestTotalAmount = number_format($bestTotalAmount, 2, '.', '');
-            $context->buildViolation("Expected total amount of $bestTotalAmount, got {$this->totalAmount}")
+            $context->buildViolation("Expected total amount of $expectedTotalAmount, got {$this->totalAmount}")
                 ->atPath('totalAmount')
                 ->addViolation();
         }
@@ -362,8 +357,6 @@ class RegistrationRecord extends Record {
             if ($breakdownDetails->taxAmount !== null) {
                 $detalleDesgloseElement->add('sum1:CuotaRepercutida', $breakdownDetails->taxAmount);
             }
-
-            // Add RDE (Recargo de Equivalencia) if present
             if ($breakdownDetails->surchargeRate !== null) {
                 $detalleDesgloseElement->add('sum1:TipoRecargoEquivalencia', $breakdownDetails->surchargeRate);
             }
